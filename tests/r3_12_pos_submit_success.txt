@@ -1,0 +1,20 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (submit) - draft only, will be replaced' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Yes, that's right."; trigger_payload keys: dry_run_outcomes.
+Result: STOPPED at hf_pay_choice (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. hf_intro (talking) "Talking"
+  3. hf_order_submit (api_lookup) "Api Lookup"
+  4. hf_pay_choice (talking) "Talking"
+
+Would have done (recorded, NOT performed):
+  - hf_order_submit (api_lookup) "Api Lookup": body={"schema":"phone-order/v1","location_id":"willow-wick-demo","source":"voice_agent","call_id":"","client_order_ref":"ww-","menu_version":"","cart_token":"","customer":{"name":"","phone":"","caller_id":""},"fulfillment":{"type":"","requested_time":"","delivery_address":""},"items":,"special_instructions":"","allergy_notes":"","totals_estimate":{"currency":"USD","subtotal":,"tax_rate":0.065,"tax":,"delivery_fee":,"total":},"payment":{"status":"unpaid","method":"pending"}}; url=https://pos-adapter.example.invalid/v1/orders; method=POST; headers={'X-Demo-Mode': 'true', 'Content-Type': 'application/json', 'Authorization': 'B…; timeout=8; body_type=json; retry_count=0. Unresolved variables (would send EMPTY): {{call.id}}, {{stage_outputs.menu_fetch.mapped_variables.menu_version}}, {{stage_outputs.cart_validate.mapped_variables.cart_token}}, {{stage_outputs.extract_order.customer_name}}, {{stage_outputs.extract_order.customer_phone}}, {{call.caller_id_number}}, {{stage_outputs.extract_order.fulfillment}}, {{stage_outputs.extract_order.requested_time}}, {{stage_outputs.extract_order.delivery_address}}, {{stage_outputs.extract_order.items_json}}, {{stage_outputs.extract_order.special_instructions}}, {{stage_outputs.extract_order.allergy_notes}}, {{sub_amt}}, {{tax_amt}}, {{fee_amt}}, {{total_amt}}
+
+Agent replied:
+  - "Harness test: One Wick Burger medium with cheddar for pickup, subtotal sixteen fifty, tax one oh seven, total seventeen fifty-seven, ready in about twenty-five minutes. Does that all sound right?"
+  - "Great, your order is in, and it should be ready in about twenty-five minutes. Would you like me to text a secure payment link to the number you’re calling from, or would you prefer to pay at pickup?"
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

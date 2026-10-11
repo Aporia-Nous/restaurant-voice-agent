@@ -1,0 +1,24 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (order_problem) - draft only, will be replaced' (workflow_id: trigger_call_inbound_3, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Pickup: one Wick Burger medium with cheddar and a lemonade. Name Sam, 605-555-0101. That's everything, read it back."; trigger_payload keys: dry_run_outcomes.
+Result: STOPPED at he_readback (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_3 (trigger) "Trigger"
+  2. he_intro (talking) "Talking"
+  3. he_extract_order (extract_dynamic_variables) "Extract Dynamic Variables"
+  4. he_calc_cents (set_and_format_variables) "Set And Format Variables"
+  5. he_calc_round (set_and_format_variables) "Set And Format Variables"
+  6. he_calc_totals (set_and_format_variables) "Set And Format Variables"
+  7. he_cart_validate (api_lookup) "Api Lookup"
+  8. he_readback (talking) "Talking"
+
+Would have done (recorded, NOT performed):
+  - he_cart_validate (api_lookup) "Api Lookup": body={'schema': 'cart-validate/v1', 'location_id': 'willow-wick-demo', 'menu_version': '', 'fulfillment': 'pickup', 'items': [{'name': 'Wick Burger', 'item_id': '', 'quantity': 1, 'unit_price': 15, 'modifiers': [{'name': 'cheddar', 'modifier_id': '', 'price': 1.5}], 'special_instructions': 'medium'}, {'name': 'Lemonade', 'item_id': '', 'quantity': 1, 'unit_price': 4, 'modifiers': [], 'special_instructions': ''}], 'subtotal_estimate': 20.5}; url=https://pos-adapter.example.invalid/v1/cart/validate; method=POST; headers={'X-Demo-Mode': 'true', 'Content-Type': 'application/json', 'Authorization': 'B…; timeout=5; body_type=json; retry_count=0
+
+Agent replied:
+  - "Harness test: Tell me your whole order."
+  - "You’ve got one Wick Burger with cheddar and a lemonade for pickup under Sam, 605-555-0101. The lemonade’s unavailable right now, and the burger price has changed to fifteen fifty tonight; the subtotal is sixteen fifty, tax is one dollar and seven cents, total is seventeen fifty-seven, and it shoul…
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

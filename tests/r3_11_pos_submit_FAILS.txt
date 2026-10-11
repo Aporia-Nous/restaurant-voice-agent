@@ -1,0 +1,29 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (submit) - draft only, will be replaced' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Yes, that's right."; trigger_payload keys: dry_run_outcomes.
+Result: COMPLETED — the run reached the end of the workflow.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. hf_intro (talking) "Talking"
+  3. hf_order_submit (api_lookup) "Api Lookup"
+  4. hf_fail_summary (generate_content) "Generate Content"
+  5. hf_notify_staff (send_internal_notification) "Send Internal Notification"
+  6. hf_fallback_say (talking) "Talking"
+  7. hf_goto_sum_fail (goto) "Goto"
+  8. hf_write_summary (generate_content) "Generate Content"
+  9. hf_bye_done (talking) "Talking"
+  10. hf_end_done (end) "End"
+
+Would have done (recorded, NOT performed):
+  - hf_order_submit (api_lookup) "Api Lookup": body={"schema":"phone-order/v1","location_id":"willow-wick-demo","source":"voice_agent","call_id":"","client_order_ref":"ww-","menu_version":"","cart_token":"","customer":{"name":"","phone":"","caller_id":""},"fulfillment":{"type":"","requested_time":"","delivery_address":""},"items":,"special_instructions":"","allergy_notes":"","totals_estimate":{"currency":"USD","subtotal":,"tax_rate":0.065,"tax":,"delivery_fee":,"total":},"payment":{"status":"unpaid","method":"pending"}}; url=https://pos-adapter.example.invalid/v1/orders; method=POST; headers={'X-Demo-Mode': 'true', 'Content-Type': 'application/json', 'Authorization': 'B…; timeout=8; body_type=json; retry_count=0. Unresolved variables (would send EMPTY): {{call.id}}, {{stage_outputs.menu_fetch.mapped_variables.menu_version}}, {{stage_outputs.cart_validate.mapped_variables.cart_token}}, {{stage_outputs.extract_order.customer_name}}, {{stage_outputs.extract_order.customer_phone}}, {{call.caller_id_number}}, {{stage_outputs.extract_order.fulfillment}}, {{stage_outputs.extract_order.requested_time}}, {{stage_outputs.extract_order.delivery_address}}, {{stage_outputs.extract_order.items_json}}, {{stage_outputs.extract_order.special_instructions}}, {{stage_outputs.extract_order.allergy_notes}}, {{sub_amt}}, {{tax_amt}}, {{fee_amt}}, {{total_amt}}
+  - hf_notify_staff (send_internal_notification) "Send Internal Notification": body=Customer: [name not provided] Callback: [callback number not provided] Order Type: Pickup Pickup Time: Ready in about 25 minutes Items: - 1 x One Wick Burger, medium, with cheddar Special Instructions: None provided Allergy Notes: None provided Quoted Subtotal: $16.50 Tax: $1.07 Delivery Fee: $0.00 Total: $17.57; title=Phone order needs manual entry (ordering system did not accept it); recipient_id=4a706601-36f9-4776-8b3a-90ab11270e50
+
+Agent replied:
+  - "Harness test: One Wick Burger medium with cheddar for pickup, subtotal sixteen fifty, tax one oh seven, total seventeen fifty-seven, ready in about twenty-five minutes. Does that all sound right?"
+  - "I have passed your order to our team, and someone will confirm it with you shortly. Payment is at pickup or at the door."
+  - "Perfect. Thanks so much for calling Willow and Wick, we will see you soon!"
+  - "Goodbye!"
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

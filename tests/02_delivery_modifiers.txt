@@ -1,0 +1,16 @@
+Dry-run test of workflow 'Inbound restaurant host' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Delivery please to 220 Oak Avenue which is two miles away. Two fish tacos beer-battered with corn tortillas, one with no crema, and a lemonade. My number is 605-555-0199."; no trigger_payload.
+Result: STOPPED at host_2 (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. greet_2 (talking) "Talking"
+  3. host_2 (talking) "Talking"
+
+Agent replied:
+  - "Thanks for calling Willow and Wick Kitchen, this is Mira. I can help with orders, reservations, or questions — what can I do for you?"
+  - "Absolutely — that’s a delivery order to 220 Oak Avenue, and I’ve got your number as 605-555-0199. I’m just missing the prices for the fish tacos and lemonade before I can total it up; if you’d like, I can connect you with the kitchen staff to confirm those and finish the order."
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

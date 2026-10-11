@@ -1,0 +1,18 @@
+Dry-run test of workflow 'Payment status updates from ordering system (webhook, draft)' (workflow_id: trigger_webhook, trigger: webhook). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "payment webhook"; no trigger_payload.
+Result: COMPLETED — the run reached the end of the workflow.
+
+Steps run, in order:
+  1. trigger_webhook (trigger) "Trigger"
+  2. pay_status_notify (send_internal_notification) "Send Internal Notification"
+  3. pay_status_end (end) "End"
+
+Would have done (recorded, NOT performed):
+  - pay_status_notify (send_internal_notification) "Send Internal Notification": body=Payment status: (paid, failed, or expired). Order: / ref . Amount: . Link: . Time: . If failed or expired, collect payment at pickup or the door.; title=Phone order : payment; recipient_id=4a706601-36f9-4776-8b3a-90ab11270e50. Unresolved variables (would send EMPTY): {{trigger.payload.status}}, {{trigger.payload.order_id}}, {{trigger.payload.client_order_ref}}, {{trigger.payload.amount}}, {{trigger.payload.currency}}, {{trigger.payload.payment_link_id}}, {{trigger.payload.occurred_at}}
+
+Agent replied:
+  - "Payment status recorded."
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

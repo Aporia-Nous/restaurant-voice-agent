@@ -1,0 +1,28 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (pay) - draft only, will be replaced' (workflow_id: trigger_call_inbound_3, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Yes please, text me the secure link at this number, that's fine."; trigger_payload keys: dry_run_outcomes.
+Result: COMPLETED — the run reached the end of the workflow.
+
+Steps run, in order:
+  1. trigger_call_inbound_3 (trigger) "Trigger"
+  2. hg_intro (talking) "Talking"
+  3. hg_pay_link (api_lookup) "Api Lookup"
+  4. hg_sms_link (sms) "Sms"
+  5. hg_link_sent (talking) "Talking"
+  6. hg_goto_sum_link (goto) "Goto"
+  7. hg_write_summary (generate_content) "Generate Content"
+  8. hg_bye_done (talking) "Talking"
+  9. hg_end_done (end) "End"
+
+Would have done (recorded, NOT performed):
+  - hg_pay_link (api_lookup) "Api Lookup": body={"schema":"payment-link/v1","location_id":"willow-wick-demo","order_id":"","client_order_ref":"ww-","amount_estimate":,"currency":"USD","customer_phone":"","expires_in_minutes":30,"description":"Willow & Wick Kitchen phone order"}; url=https://pos-adapter.example.invalid/v1/payments/links; method=POST; headers={'X-Demo-Mode': 'true', 'Content-Type': 'application/json', 'Authorization': 'B…; timeout=5; body_type=json; retry_count=0. Unresolved variables (would send EMPTY): {{stage_outputs.order_submit.mapped_variables.pos_order_id}}, {{call.id}}, {{total_amt}}, {{call.caller_id_number}}
+  - hg_sms_link (sms) "Sms": message=Willow & Wick Kitchen: pay for order securely here: Link expires in 30 min. You can also pay at pickup. Reply STOP to opt out.; channel_id=92aba3c5-3105-435a-b0ed-80e1351aedf0; message_mode=static; error_handling=continue. Unresolved variables (would send EMPTY): {{call.caller_id_number}}, {{stage_outputs.order_submit.mapped_variables.pos_order_id}}, {{stage_outputs.hg_pay_link.mapped_variables.payment_url}}
+
+Agent replied:
+  - "Harness test: Your order is in, order W-1001, ready in about twenty-five minutes. Would you like a secure payment link by text, or pay at pickup? Is it okay to text the number you're calling from?"
+  - "I just texted you a secure payment link. It expires in about thirty minutes, and if it does not come through, no problem, you can pay at pickup or at the door."
+  - "Perfect. Thanks so much for calling Willow and Wick, we will see you soon!"
+  - "Goodbye!"
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

@@ -1,0 +1,502 @@
+{
+  "trigger": {
+    "type": "call_inbound"
+  },
+  "steps": [
+    {
+      "id": "greet",
+      "type": "talking",
+      "mode": "static",
+      "allow_interruptions": true,
+      "auto_continue": false,
+      "message": "Thanks for calling Willow and Wick Kitchen, this is Mira. I can help with orders, reservations, or questions. What can I do for you?"
+    },
+    {
+      "id": "menu_fetch",
+      "type": "api_lookup",
+      "method": "GET",
+      "url": "https://pos-adapter.example.invalid/v1/menu?location_id=willow-wick-demo&channel=phone",
+      "headers": {
+        "Authorization": "Bearer DUMMY_POS_TOKEN_NOT_REAL",
+        "Content-Type": "application/json",
+        "X-Demo-Mode": "true"
+      },
+      "timeout": 4,
+      "retry_count": 0,
+      "response_mapping": {
+        "menu_summary": "menu_summary",
+        "unavailable_summary": "unavailable_summary",
+        "menu_version": "menu_version"
+      },
+      "success": [
+        {
+          "id": "host",
+          "type": "talking",
+          "mode": "ai_generated",
+          "allow_interruptions": true,
+          "message": "Continue as Mira at Willow & Wick Kitchen using your system prompt and knowledge base. LIVE MENU from the restaurant's ordering system (blank means not connected): <<<{{stage_outputs.menu_fetch.mapped_variables.menu_summary}}>>> Items currently unavailable or sold out (blank means none reported): <<<{{stage_outputs.menu_fetch.mapped_variables.unavailable_summary}}>>> If the live menu is present it is the source of truth: confirm each requested item is on it and not unavailable, use its price, and accept only the modifiers it lists for that item. If an item is missing or unavailable, say so and offer the one or two closest available alternatives from the live menu. If a modifier is not allowed, say so and offer the allowed options. If the live menu is blank, use the knowledge-base menu and mention once that final prices will be confirmed by staff. Take pickup or delivery orders one item at a time with modifiers, confirm each, offer at most one upsell, and collect pickup or delivery, name, callback number, and address for delivery. Do NOT quote an order total yourself. When the caller says that is everything and you have their name, callback number, and address if delivery, ask: Shall I read that back with your total? When they agree, choose route Order complete. Never ask again for details the caller already gave you. Also handle reservation requests and menu or hours questions. For a severe allergy, state the allergens the guide lists for that dish, never call it safe, and offer to connect them with the kitchen team. If the caller gives a full reservation request and also asks for a person, read the reservation request back first, then choose route Speak to a person. Never say a dish is allergen-safe. Never take card numbers; if the caller starts reading card details, stop them politely and say a secure text link is available after the order. If the caller asks for a person, manager, kitchen staff, has a severe allergy concern, complaint, catering request, or you are unsure after two tries, choose route Speak to a person. When a reservation request is fully captured and read back and the caller is done, choose route Reservation complete.",
+          "routes": [
+            "Order complete",
+            "Reservation complete",
+            "Speak to a person"
+          ],
+          "Order complete": [
+            {
+              "id": "extract_order",
+              "type": "extract_dynamic_variables",
+              "input_source": "auto",
+              "include_conversation": true,
+              "include_system_prompt": true,
+              "variables": [
+                {
+                  "variable_name": "customer_name",
+                  "description": "Name for the order",
+                  "variable_type": "text"
+                },
+                {
+                  "variable_name": "customer_phone",
+                  "description": "Callback number the caller gave, digits only with country code if known",
+                  "variable_type": "phone"
+                },
+                {
+                  "variable_name": "fulfillment",
+                  "description": "pickup or delivery",
+                  "variable_type": "enum",
+                  "enum_options": [
+                    "pickup",
+                    "delivery"
+                  ]
+                },
+                {
+                  "variable_name": "delivery_address",
+                  "description": "Full street address for delivery, blank for pickup",
+                  "variable_type": "text"
+                },
+                {
+                  "variable_name": "requested_time",
+                  "description": "Requested ready or delivery time, or ASAP",
+                  "variable_type": "text"
+                },
+                {
+                  "variable_name": "items_json",
+                  "description": "The final cart as a compact JSON array, no prose. Each element: {\"name\":string,\"item_id\":string or \"\" (from the live menu if given),\"quantity\":integer,\"unit_price\":number (menu base price),\"modifiers\":[{\"name\":string,\"modifier_id\":string or \"\",\"price\":number}],\"special_instructions\":string}. Use only items the caller kept after any changes. Escape any double quotes inside text.",
+                  "variable_type": "text"
+                },
+                {
+                  "variable_name": "subtotal",
+                  "description": "Food and drink subtotal in dollars: sum over items of quantity x (unit_price + sum of modifier prices), using menu prices. Number only.",
+                  "variable_type": "number"
+                },
+                {
+                  "variable_name": "delivery_fee",
+                  "description": "4.99 if delivery, otherwise 0. Number only.",
+                  "variable_type": "number"
+                },
+                {
+                  "variable_name": "allergy_notes",
+                  "description": "Any allergies or dietary needs the caller mentioned, else blank",
+                  "variable_type": "text"
+                },
+                {
+                  "variable_name": "special_instructions",
+                  "description": "Order-level special instructions, else blank",
+                  "variable_type": "text"
+                }
+              ]
+            },
+            {
+              "id": "calc_cents",
+              "type": "set_and_format_variables",
+              "values": [
+                {
+                  "output_name": "sub_c_raw",
+                  "kind": "math",
+                  "source": "{{stage_outputs.extract_order.subtotal}} * 100 + 0.5"
+                },
+                {
+                  "output_name": "tax_c_raw",
+                  "kind": "math",
+                  "source": "{{stage_outputs.extract_order.subtotal}} * 6.5 + 0.5"
+                },
+                {
+                  "output_name": "fee_c_raw",
+                  "kind": "math",
+                  "source": "{{stage_outputs.extract_order.delivery_fee}} * 100 + 0.5"
+                }
+              ]
+            },
+            {
+              "id": "calc_round",
+              "type": "set_and_format_variables",
+              "values": [
+                {
+                  "output_name": "sub_c",
+                  "kind": "text",
+                  "source": "{{sub_c_raw}}.0",
+                  "formatter": {
+                    "code": "split",
+                    "separator": ".",
+                    "segment": "first"
+                  }
+                },
+                {
+                  "output_name": "tax_c",
+                  "kind": "text",
+                  "source": "{{tax_c_raw}}.0",
+                  "formatter": {
+                    "code": "split",
+                    "separator": ".",
+                    "segment": "first"
+                  }
+                },
+                {
+                  "output_name": "fee_c",
+                  "kind": "text",
+                  "source": "{{fee_c_raw}}.0",
+                  "formatter": {
+                    "code": "split",
+                    "separator": ".",
+                    "segment": "first"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "calc_totals",
+              "type": "set_and_format_variables",
+              "values": [
+                {
+                  "output_name": "sub_amt",
+                  "kind": "math",
+                  "source": "{{sub_c}} / 100"
+                },
+                {
+                  "output_name": "tax_amt",
+                  "kind": "math",
+                  "source": "{{tax_c}} / 100"
+                },
+                {
+                  "output_name": "fee_amt",
+                  "kind": "math",
+                  "source": "{{fee_c}} / 100"
+                },
+                {
+                  "output_name": "total_amt",
+                  "kind": "math",
+                  "source": "({{sub_c}} + {{tax_c}} + {{fee_c}}) / 100"
+                }
+              ]
+            },
+            {
+              "id": "cart_validate",
+              "type": "api_lookup",
+              "method": "POST",
+              "url": "https://pos-adapter.example.invalid/v1/cart/validate",
+              "headers": {
+                "Authorization": "Bearer DUMMY_POS_TOKEN_NOT_REAL",
+                "Content-Type": "application/json",
+                "X-Demo-Mode": "true"
+              },
+              "body_type": "json",
+              "body": "{\"schema\":\"cart-validate/v1\",\"location_id\":\"willow-wick-demo\",\"menu_version\":\"{{stage_outputs.menu_fetch.mapped_variables.menu_version}}\",\"fulfillment\":\"{{stage_outputs.extract_order.fulfillment}}\",\"items\":{{stage_outputs.extract_order.items_json}},\"subtotal_estimate\":{{sub_amt}}}",
+              "timeout": 5,
+              "retry_count": 0,
+              "response_mapping": {
+                "valid": "valid",
+                "problems_summary": "problems",
+                "subtotal": "subtotal",
+                "tax": "tax",
+                "delivery_fee": "delivery_fee",
+                "total": "total",
+                "ready_estimate_text": "ready",
+                "cart_token": "cart_token"
+              },
+              "success": [
+                {
+                  "id": "readback",
+                  "type": "talking",
+                  "mode": "ai_generated",
+                  "allow_interruptions": true,
+                  "message": "Read the caller's FULL order back as Mira: each item with quantity and modifiers, pickup or delivery, the address if delivery, and the callback number digit by digit exactly as written here: <<<{{stage_outputs.extract_order.customer_phone}}>>>. State the subtotal, the tax, the delivery fee if any, and the total as separate figures. ORDERING SYSTEM CART CHECK: valid=<<<{{stage_outputs.cart_validate.mapped_variables.valid}}>>> problems=<<<{{stage_outputs.cart_validate.mapped_variables.problems}}>>> subtotal=<<<{{stage_outputs.cart_validate.mapped_variables.subtotal}}>>> tax=<<<{{stage_outputs.cart_validate.mapped_variables.tax}}>>> delivery fee=<<<{{stage_outputs.cart_validate.mapped_variables.delivery_fee}}>>> total=<<<{{stage_outputs.cart_validate.mapped_variables.total}}>>> ready estimate=<<<{{stage_outputs.cart_validate.mapped_variables.ready}}>>>. If valid is false or problems is not blank: explain the problem in one sentence, offer the closest available alternatives, and ask if they want to change the order (route Change the order). If valid is true: use exactly those system figures. If the cart check is blank (system not connected or it failed): use exactly these figures worked out from the menu: subtotal {{sub_amt}} dollars, tax {{tax_amt}} dollars at six point five percent, delivery fee {{fee_amt}} dollars, total {{total_amt}} dollars, ready in about twenty-five minutes for pickup or forty-five to sixty for delivery, and add that staff will confirm the final price. Never mention the cart check, the ordering system, or any technical detail to the caller. Never redo the math yourself. Say amounts in spoken form. Do not say the order is placed yet. End with: Does that all sound right?",
+                  "routes": [
+                    "Yes, confirmed",
+                    "Change the order",
+                    "Speak to a person"
+                  ],
+                  "Yes, confirmed": [
+                    {
+                      "id": "order_submit",
+                      "type": "api_lookup",
+                      "method": "POST",
+                      "url": "https://pos-adapter.example.invalid/v1/orders",
+                      "headers": {
+                        "Authorization": "Bearer DUMMY_POS_TOKEN_NOT_REAL",
+                        "Content-Type": "application/json",
+                        "X-Demo-Mode": "true",
+                        "Idempotency-Key": "ww-{{call.id}}"
+                      },
+                      "body_type": "json",
+                      "body": "{\"schema\":\"phone-order/v1\",\"location_id\":\"willow-wick-demo\",\"source\":\"voice_agent\",\"call_id\":\"{{call.id}}\",\"client_order_ref\":\"ww-{{call.id}}\",\"menu_version\":\"{{stage_outputs.menu_fetch.mapped_variables.menu_version}}\",\"cart_token\":\"{{stage_outputs.cart_validate.mapped_variables.cart_token}}\",\"customer\":{\"name\":\"{{stage_outputs.extract_order.customer_name}}\",\"phone\":\"{{stage_outputs.extract_order.customer_phone}}\",\"caller_id\":\"{{call.caller_id_number}}\"},\"fulfillment\":{\"type\":\"{{stage_outputs.extract_order.fulfillment}}\",\"requested_time\":\"{{stage_outputs.extract_order.requested_time}}\",\"delivery_address\":\"{{stage_outputs.extract_order.delivery_address}}\"},\"items\":{{stage_outputs.extract_order.items_json}},\"special_instructions\":\"{{stage_outputs.extract_order.special_instructions}}\",\"allergy_notes\":\"{{stage_outputs.extract_order.allergy_notes}}\",\"totals_estimate\":{\"currency\":\"USD\",\"subtotal\":{{sub_amt}},\"tax_rate\":0.065,\"tax\":{{tax_amt}},\"delivery_fee\":{{fee_amt}},\"total\":{{total_amt}}},\"payment\":{\"status\":\"unpaid\",\"method\":\"pending\"}}",
+                      "timeout": 8,
+                      "retry_count": 0,
+                      "response_mapping": {
+                        "order_id": "pos_order_id",
+                        "status": "order_status",
+                        "ready_time_text": "ready_time"
+                      },
+                      "success": [
+                        {
+                          "id": "pay_choice",
+                          "type": "talking",
+                          "mode": "ai_generated",
+                          "allow_interruptions": true,
+                          "message": "Tell the caller their order is in with the restaurant's ordering system, order number <<<{{stage_outputs.order_submit.mapped_variables.pos_order_id}}>>>, ready <<<{{stage_outputs.order_submit.mapped_variables.ready_time}}>>> (if blank, say about twenty-five minutes for pickup or forty-five to sixty for delivery). Then offer two ways to pay: a secure payment link by text message now, or pay at pickup or at the door. Before texting, ask: Is it okay if I text a secure payment link to the number you're calling from? Never take card numbers, expiry dates, or security codes by voice. If the caller starts reading card details, stop them politely right away: For your security, please don't read card details over the phone; I can text you a secure payment link instead, or you can pay at pickup. Never repeat any digits they said. Choose route Text me a link only after a clear yes to texting; choose route Pay at pickup or door if they prefer to pay later; choose route Speak to a person if they ask for a person.",
+                          "routes": [
+                            "Text me a link",
+                            "Pay at pickup or door",
+                            "Speak to a person"
+                          ],
+                          "Text me a link": [
+                            {
+                              "id": "pay_link",
+                              "type": "api_lookup",
+                              "method": "POST",
+                              "url": "https://pos-adapter.example.invalid/v1/payments/links",
+                              "headers": {
+                                "Authorization": "Bearer DUMMY_POS_TOKEN_NOT_REAL",
+                                "Content-Type": "application/json",
+                                "X-Demo-Mode": "true"
+                              },
+                              "body_type": "json",
+                              "body": "{\"schema\":\"payment-link/v1\",\"location_id\":\"willow-wick-demo\",\"order_id\":\"{{stage_outputs.order_submit.mapped_variables.pos_order_id}}\",\"client_order_ref\":\"ww-{{call.id}}\",\"amount_estimate\":{{total_amt}},\"currency\":\"USD\",\"customer_phone\":\"{{call.caller_id_number}}\",\"expires_in_minutes\":30,\"description\":\"Willow & Wick Kitchen phone order\"}",
+                              "timeout": 5,
+                              "retry_count": 0,
+                              "response_mapping": {
+                                "payment_url": "payment_url",
+                                "expires_at": "expires_at",
+                                "payment_link_id": "payment_link_id"
+                              },
+                              "success": [
+                                {
+                                  "id": "sms_link",
+                                  "type": "sms",
+                                  "channel_id": "92aba3c5-3105-435a-b0ed-80e1351aedf0",
+                                  "to": "{{call.caller_id_number}}",
+                                  "message_mode": "static",
+                                  "error_handling": "continue",
+                                  "message": "Willow & Wick Kitchen: pay for order {{stage_outputs.order_submit.mapped_variables.pos_order_id}} securely here: {{stage_outputs.pay_link.mapped_variables.payment_url}} Link expires in 30 min. You can also pay at pickup. Reply STOP to opt out."
+                                },
+                                {
+                                  "id": "link_sent",
+                                  "type": "talking",
+                                  "mode": "static",
+                                  "message": "I just texted you a secure payment link. It expires in about thirty minutes, and if it does not come through, no problem, you can pay at pickup or at the door.",
+                                  "auto_continue": true
+                                },
+                                {
+                                  "id": "goto_sum_link",
+                                  "type": "goto",
+                                  "target": "write_summary"
+                                }
+                              ],
+                              "error": [
+                                {
+                                  "id": "link_fail",
+                                  "type": "talking",
+                                  "mode": "static",
+                                  "message": "I was not able to create a payment link just now, so you can simply pay at pickup or at the door.",
+                                  "auto_continue": true
+                                },
+                                {
+                                  "id": "goto_sum_linkfail",
+                                  "type": "goto",
+                                  "target": "write_summary"
+                                }
+                              ]
+                            }
+                          ],
+                          "Pay at pickup or door": [
+                            {
+                              "id": "pay_later",
+                              "type": "talking",
+                              "mode": "static",
+                              "message": "Sounds good, you can pay at pickup or at the door.",
+                              "auto_continue": true
+                            },
+                            {
+                              "id": "goto_sum_later",
+                              "type": "goto",
+                              "target": "write_summary"
+                            }
+                          ],
+                          "Speak to a person": [
+                            {
+                              "id": "goto_xfer_pay",
+                              "type": "goto",
+                              "target": "xfer_ack"
+                            }
+                          ]
+                        }
+                      ],
+                      "error": [
+                        {
+                          "id": "fail_summary",
+                          "type": "generate_content",
+                          "include_conversation": true,
+                          "input_source": "auto",
+                          "variables": [
+                            {
+                              "variable_name": "order_summary",
+                              "variable_type": "text",
+                              "description": "Kitchen-ready order ticket for MANUAL ENTRY: customer name and callback number, pickup or delivery and address, requested time, each item with quantity and modifiers, special instructions, allergy notes, and the quoted subtotal {{sub_amt}}, tax {{tax_amt}}, delivery fee {{fee_amt}}, total {{total_amt}}. Never include any card digits."
+                            }
+                          ]
+                        },
+                        {
+                          "id": "notify_staff",
+                          "type": "send_internal_notification",
+                          "recipient": "DeAli Dillard",
+                          "title": "Phone order needs manual entry (ordering system did not accept it)",
+                          "body": "{{stage_outputs.fail_summary.order_summary}}"
+                        },
+                        {
+                          "id": "fallback_say",
+                          "type": "talking",
+                          "mode": "static",
+                          "message": "I have passed your order to our team, and someone will confirm it with you shortly. Payment is at pickup or at the door.",
+                          "auto_continue": true
+                        },
+                        {
+                          "id": "goto_sum_fail",
+                          "type": "goto",
+                          "target": "write_summary"
+                        }
+                      ]
+                    }
+                  ],
+                  "Change the order": [
+                    {
+                      "id": "goto_host_change",
+                      "type": "goto",
+                      "target": "host"
+                    }
+                  ],
+                  "Speak to a person": [
+                    {
+                      "id": "goto_xfer_rb",
+                      "type": "goto",
+                      "target": "xfer_ack"
+                    }
+                  ]
+                }
+              ],
+              "error": [
+                {
+                  "id": "goto_readback",
+                  "type": "goto",
+                  "target": "readback"
+                }
+              ]
+            }
+          ],
+          "Reservation complete": [
+            {
+              "id": "write_summary",
+              "type": "generate_content",
+              "include_conversation": true,
+              "input_source": "auto",
+              "variables": [
+                {
+                  "variable_name": "call_summary",
+                  "variable_type": "text",
+                  "description": "Structured kitchen summary: Intent; Fulfillment; Items with modifiers and prices OR reservation details; Subtotal/tax/fees/total; Ready time; Name/phone/address; Allergies; Order system result (accepted with order number / not accepted, staff to confirm / not connected); Payment (text link sent / pay at pickup or door / link failed); Outcome. Never include any card digits even if the caller said them."
+                }
+              ]
+            },
+            {
+              "id": "bye_done",
+              "type": "talking",
+              "mode": "static",
+              "message": "Perfect. Thanks so much for calling Willow and Wick, we will see you soon!",
+              "auto_continue": true
+            },
+            {
+              "id": "end_done",
+              "type": "end",
+              "message": "Goodbye!"
+            }
+          ],
+          "Speak to a person": [
+            {
+              "id": "xfer_ack",
+              "type": "talking",
+              "mode": "static",
+              "message": "Of course, I am connecting you with our team right now. One moment.",
+              "auto_continue": true
+            },
+            {
+              "id": "forward_staff",
+              "type": "call_forwarding",
+              "forwarding_rules": [
+                {
+                  "name": "Kitchen staff line",
+                  "enabled": true,
+                  "mode": "simultaneous",
+                  "ring_timeout": 30,
+                  "phone_numbers": [
+                    {
+                      "number": "+1 555-555-0124",
+                      "enabled": true
+                    }
+                  ]
+                }
+              ],
+              "answered": [
+                {
+                  "id": "end_xfer_ok",
+                  "type": "end",
+                  "message": "You are connected. Thanks for calling Willow and Wick!"
+                }
+              ],
+              "no_answer": [
+                {
+                  "id": "xfer_fail",
+                  "type": "talking",
+                  "mode": "static",
+                  "message": "I could not reach anyone right now. Please try calling back shortly and ask for the team.",
+                  "auto_continue": true
+                },
+                {
+                  "id": "end_xfer_fail",
+                  "type": "end",
+                  "message": "Thanks for calling Willow and Wick."
+                }
+              ],
+              "outside_hours": [
+                {
+                  "id": "xfer_closed",
+                  "type": "talking",
+                  "mode": "static",
+                  "message": "Our team line is not available right now. Please call back during open hours.",
+                  "auto_continue": true
+                },
+                {
+                  "id": "end_xfer_closed",
+                  "type": "end",
+                  "message": "Thanks for calling Willow and Wick."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "error": [
+        {
+          "id": "goto_host_kb",
+          "type": "goto",
+          "target": "host"
+        }
+      ]
+    }
+  ]
+}

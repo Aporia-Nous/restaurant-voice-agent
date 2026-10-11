@@ -1,0 +1,16 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (card) - draft only, will be replaced' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Sure, I'll just pay now. My card number is 4111 1111 1111 1111, expiry twelve twenty-eight, and the code on the back is 123."; no trigger_payload.
+Result: STOPPED at hh_pay_choice (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. hh_intro (talking) "Talking"
+  3. hh_pay_choice (talking) "Talking"
+
+Agent replied:
+  - "Harness test: Your order is in. Would you like to pay now?"
+  - "For your security, please don't read card details over the phone; I can text you a secure payment link instead, or you can pay at pickup. Your order is in, order number W-1001, and it’ll be ready in about twenty-five minutes. Is it okay if I text a secure payment link to the number you're calling …
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

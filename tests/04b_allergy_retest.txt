@@ -1,0 +1,16 @@
+Dry-run test of workflow 'Inbound restaurant host' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Does the lemon olive oil cake have nuts? I have a severe tree nut allergy. Is it safe for me?"; no trigger_payload.
+Result: STOPPED at host_2 (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. greet_2 (talking) "Talking"
+  3. host_2 (talking) "Talking"
+
+Agent replied:
+  - "Thanks for calling Willow and Wick Kitchen, this is Mira. I can help with orders, reservations, or questions — what can I do for you?"
+  - "The Lemon Olive-Oil Cake does list tree nuts and almond flour, so I wouldn’t call it safe for a severe tree nut allergy. Please tell our team about your allergy when you arrive so the kitchen can advise you — would you like me to transfer you to a person now?"
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).

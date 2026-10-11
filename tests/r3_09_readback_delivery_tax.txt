@@ -1,0 +1,25 @@
+Dry-run test of workflow 'TEMP TEST HARNESS (order_fallback) - draft only, will be replaced' (workflow_id: trigger_call_inbound_2, trigger: call_inbound). NOTHING was sent, booked or changed: every step with a side effect was recorded, not performed.
+Test input: the contact said "Delivery to 220 Oak Avenue, two miles away. Two fish tacos beer-battered with corn tortillas, one with no crema, and a lemonade. Casey, 605-555-0199. That's everything, read it back please."; trigger_payload keys: dry_run_outcomes.
+Result: STOPPED at hd_readback (talking) "Talking" (status 'paused'). A one-turn test ends where the workflow waits: for the contact's next reply, or on a wait step, which a test does not sit out.
+
+Steps run, in order:
+  1. trigger_call_inbound_2 (trigger) "Trigger"
+  2. hd_intro (talking) "Talking"
+  3. hd_extract_order (extract_dynamic_variables) "Extract Dynamic Variables"
+  4. hd_calc_cents (set_and_format_variables) "Set And Format Variables"
+  5. hd_calc_round (set_and_format_variables) "Set And Format Variables"
+  6. hd_calc_totals (set_and_format_variables) "Set And Format Variables"
+  7. hd_cart_validate (api_lookup) "Api Lookup"
+  8. hd_goto_readback (goto) "Goto"
+  9. hd_readback (talking) "Talking"
+
+Would have done (recorded, NOT performed):
+  - hd_cart_validate (api_lookup) "Api Lookup": body={'schema': 'cart-validate/v1', 'location_id': 'willow-wick-demo', 'menu_version': '', 'fulfillment': 'delivery', 'items': [{'name': 'Fish Tacos (2)', 'item_id': '', 'quantity': 1, 'unit_price': 15, 'modifiers': [{'name': 'corn tortillas', 'modifier_id': '', 'price': 0}, {'name': 'no crema', 'modifier_id': '', 'price': 0}], 'special_instructions': 'beer-battered'}, {'name': 'Lemonade', 'item_id': '', 'quantity': 1, 'unit_price': 4, 'modifiers': [], 'special_instructions': ''}], 'subtotal_estimate; url=https://pos-adapter.example.invalid/v1/cart/validate; method=POST; headers={'X-Demo-Mode': 'true', 'Content-Type': 'application/json', 'Authorization': 'B…; timeout=5; body_type=json; retry_count=0
+
+Agent replied:
+  - "Harness test: Tell me your whole order."
+  - "Sure — for delivery to 220 Oak Avenue, I have two fish tacos with beer-battered fish and corn tortillas, one with no crema, plus one lemonade, under Casey at six zero five five five five zero one nine nine. Your subtotal is nineteen dollars, tax is one dollar and twenty-four cents, delivery fee is…
+
+Next steps:
+  1. Tell the user what the test showed. It was a dry run, so no real contact was reached.
+  2. To test another path, change 'message' or 'trigger_payload' (its dry_run_outcomes picks a booking or call step's branch).
