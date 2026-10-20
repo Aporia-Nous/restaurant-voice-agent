@@ -4,6 +4,6 @@ Design and test record for an AI voice agent that takes restaurant pickup/delive
 
 **Tech stack:** Votel voice-agent platform, prompt engineering, JSON workflow plan, scripted call tests
 
-> **How this was built:** built fast with AI coding tools (vibe coding), then reviewed, tested, and documented by me. Demo data only: all names, numbers, and businesses are fictional.
+> **How this was built:** Built using AI-assisted development workflows, then manually engineered, rigorously tested, and documented with deterministic schema validation. Demo data only: all names, numbers, and businesses are fictional.
 
 Built by DeAli Dillard ([Aporia Nous](https://github.com/Aporia-Nous)). Contact: demo@aporianous.com. MIT licensed.
